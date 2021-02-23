@@ -1,1 +1,1 @@
-# 4350Project
+# Project MAD Mobile App Database
