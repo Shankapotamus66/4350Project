@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "791120239556",
+    "firebase_url": "https://cmps-4350-default-rtdb.firebaseio.com",
+    "project_id": "cmps-4350",
+    "storage_bucket": "cmps-4350.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:791120239556:android:4a7aed09003ef220576291",
+        "android_client_info": {
+          "package_name": "com.example.hotel"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "791120239556-47g37adf8nkn5le28qkkf5pb261ms3cb.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCjmvsHkJNnHicnlrgLd1qeLQncB7EVe74"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "791120239556-47g37adf8nkn5le28qkkf5pb261ms3cb.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
