@@ -167,7 +167,13 @@ class _MyHomePageState extends State<MyHomePage> {
                   width: 225,
                   child: RaisedButton(
                     textColor: Color(0xFF303030),
-                    onPressed: () {},
+                    onPressed: () {
+                      createData();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => SecondRoute()),
+                      );
+                    },
                     child: const Text('Create Booking', style: TextStyle(fontSize: 20)),
                   ),
                 ),
@@ -238,6 +244,35 @@ class FirstRoute extends StatelessWidget {
     );
   }
 }
+class SecondRoute extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Second Route'),
+      ),
+      body: Center(
+        child: Container(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              Text(
+                  'Data Has Been Created'
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  deleteData();
+                },
+                child: Text('Go Back'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
 class HotelList extends StatelessWidget {
   final dbRef = FirebaseDatabase.instance.reference().child("Hotels");
   List<Map<dynamic, dynamic>> lists = [];
@@ -274,14 +309,14 @@ class HotelList extends StatelessWidget {
                                     //print('Card tapped.');
                                   },
                                   child: Container(
-                                    height: 100,
+                                    height: 40,
                                     width: double.infinity,
                                     child: Padding(
                                       padding: EdgeInsets.all(10.0),
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: <Widget>[
-                                          Text("Hotel: " + lists[index]["hName"]),
+                                          Text(lists[index]["hName"]),
                                         ],
                                       ),
                                     ),
@@ -300,15 +335,15 @@ class HotelList extends StatelessWidget {
                       //print('Card tapped.');
                     },
                     child: Container(
-                      height: 100,
+                      height: 40,
                       width: double.infinity,
                       child: Padding(
-                        padding: EdgeInsets.all(10.0),
+                        padding: EdgeInsets.all(5.0),
                         child: ElevatedButton(
                           onPressed: () {
                             Navigator.pop(context);
                           },
-                          child: Text('Go back!'),
+                          child: Text('Go back'),
                         ),
                       ),
                     ),
@@ -320,4 +355,19 @@ class HotelList extends StatelessWidget {
       ),
     );
   }
+}
+void createData() {
+  final dbRef = FirebaseDatabase.instance.reference().child("Booking");
+  dbRef.child("B3").set({
+    'eDate': '03/11/21',
+    'guest': 'G1',
+    'hotel': 'H5',
+    'room': 'R1',
+    'sDate': '03/10/21'
+  });
+}
+
+void deleteData() {
+  final dbRef = FirebaseDatabase.instance.reference().child("Booking");
+  dbRef.child('B3').remove();
 }
