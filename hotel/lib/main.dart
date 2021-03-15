@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 
 import 'package:firebase_database/firebase_database.dart';
@@ -171,7 +172,9 @@ class _MyHomePageState extends State<MyHomePage> {
                       createData();
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => SecondRoute()),
+                        MaterialPageRoute(builder: (context) => CreateBooking()),
+                        //MaterialPageRoute(builder: (context) => BookingList()),
+                        //MaterialPageRoute(builder: (context) => SecondRoute()),
                       );
                     },
                     child: const Text('Create Booking', style: TextStyle(fontSize: 20)),
@@ -197,7 +200,12 @@ class _MyHomePageState extends State<MyHomePage> {
                   width: 225,
                   child: RaisedButton(
                     textColor: Color(0xFF303030),
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => DeleteBookingList()),
+                      );
+                    },
                     child: const Text('Delete Booking', style: TextStyle(fontSize: 20)),
                   ),
                 ),
@@ -244,35 +252,146 @@ class FirstRoute extends StatelessWidget {
     );
   }
 }
-class SecondRoute extends StatelessWidget {
+
+// Create a Form widget.
+class MyCustomForm extends StatefulWidget {
+  @override
+  MyCustomFormState createState() {
+    return MyCustomFormState();
+  }
+}
+
+// Create a corresponding State class.
+// This class holds data related to the form.
+class MyCustomFormState extends State<MyCustomForm> {
+  final dbRef = FirebaseDatabase.instance.reference().child("Guests");
+  List<DropdownMenuItem<dynamic>> guestList = [];
+  // Create a global key that uniquely identifies the Form widget
+  // and allows validation of the form.
+  //
+  // Note: This is a GlobalKey<FormState>,
+  // not a GlobalKey<MyCustomFormState>.
+  final _formKey = GlobalKey<FormState>();
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Second Route'),
-      ),
-      body: Center(
-        child: Container(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              Text(
-                  'Data Has Been Created'
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  deleteData();
-                },
-                child: Text('Go Back'),
-              ),
-            ],
+    // Build a Form widget using the _formKey created above.
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          FutureBuilder(
+            future: dbRef.once(),
+            builder: (context, AsyncSnapshot<DataSnapshot> snapshot) {
+              if (snapshot.hasData) {
+                guestList.clear();
+                List<DropdownMenuItem<dynamic>> values = snapshot.data.value;
+                values.forEach((values) {
+                  guestList.add(values);
+                });
+                return DropdownButtonFormField(
+                    items: guestList
+                );
+              }
+              return CircularProgressIndicator();
+            }),
+          /*
+          TextFormField(
+            decoration: InputDecoration(
+              hintText: 'Guest',
+            ),
+            validator: (value) {
+              if (value.isEmpty) {
+                return 'required';
+              }
+              return null;
+            },
           ),
-        ),
+          TextFormField(
+            decoration: InputDecoration(
+              hintText: 'Hotel',
+            ),
+            validator: (value) {
+              if (value.isEmpty) {
+                return 'required';
+              }
+              return null;
+            },
+          ),
+          TextFormField(
+            decoration: InputDecoration(
+              hintText: 'Room',
+            ),
+            validator: (value) {
+              if (value.isEmpty) {
+                return 'required';
+              }
+              return null;
+            },
+          ),
+          TextFormField(
+            decoration: InputDecoration(
+              hintText: 'Check-In Date',
+            ),
+            validator: (value) {
+              if (value.isEmpty) {
+                return 'required';
+              }
+              return null;
+            },
+          ),
+          TextFormField(
+            decoration: InputDecoration(
+              hintText: 'Check-Out Date',
+            ),
+            validator: (value) {
+              if (value.isEmpty) {
+                return 'required';
+              }
+              return null;
+            },
+          ),
+           */
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16.0),
+            child: ElevatedButton(
+              onPressed: () {
+                // Validate returns true if the form is valid, or false
+                // otherwise.
+                if (_formKey.currentState.validate()) {
+                  // If the form is valid, display a Snackbar.
+                  ScaffoldMessenger.of(context)
+                      .showSnackBar(SnackBar(content: Text('Processing Data')));
+                }
+              },
+              child: Text('Submit'),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
+
+
+class CreateBooking extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final appTitle = 'Form Validation Demo';
+    return MaterialApp(
+      title: appTitle,
+      home: Scaffold(
+        appBar: AppBar(
+          title: Text(appTitle),
+        ),
+        body: MyCustomForm(),
+      ),
+    );
+  }
+}
+
+
 class HotelList extends StatelessWidget {
   final dbRef = FirebaseDatabase.instance.reference().child("Hotels");
   List<Map<dynamic, dynamic>> lists = [];
@@ -356,6 +475,241 @@ class HotelList extends StatelessWidget {
     );
   }
 }
+
+class BookingList extends StatelessWidget {
+  final dbRef = FirebaseDatabase.instance.reference().child("Booking");
+  List<Map<dynamic, dynamic>> lists = [];
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("Booking List"),
+      ),
+      body: Center(
+        child: Container(
+          margin: const EdgeInsets.all(10.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: <Widget>[
+              FutureBuilder(
+                  future: dbRef.once(),
+                  builder: (context, AsyncSnapshot<DataSnapshot> snapshot) {
+                    if (snapshot.hasData) {
+                      lists.clear();
+                      Map<dynamic, dynamic> values = snapshot.data.value;
+                      values.forEach((key, values) {
+                        lists.add(values);
+                      });
+                      return new ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: lists.length,
+                        itemBuilder: (BuildContext context, int index) {
+                          return Card(
+                            child: InkWell(
+                              splashColor: Colors.purple.withAlpha(30),
+                              onTap: () {
+                                 //print('Card tapped.');
+                              },
+                              child: Container(
+                                height: 100,
+                                width: double.infinity,
+                                child: Padding(
+                                  padding: EdgeInsets.all(10.0),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: <Widget>[
+                                      Text("Guest: " + lists[index]["guest"]),
+                                      Text("Hotel: " + lists[index]["hotel"]),
+                                      Text("Room: " + lists[index]["room"]),
+                                      Text("Check-In: " + lists[index]["sDate"]),
+                                      Text("Check-Out: " + lists[index]["eDate"]),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+                      );
+                    }
+                    return CircularProgressIndicator();
+                  }),
+              Card(
+                //height: 100,
+                child: InkWell(
+                  splashColor: Colors.purple.withAlpha(30),
+                  onTap: () {
+                    //print('Card tapped.');
+                  },
+                  child: Container(
+                    height: 40,
+                    width: double.infinity,
+                    child: Padding(
+                      padding: EdgeInsets.all(5.0),
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        child: Text('Go back'),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class DeleteBookingList extends StatelessWidget {
+  final dbRef = FirebaseDatabase.instance.reference().child("Booking");
+  List<Map<dynamic, dynamic>> lists = [];
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("Delete Booking"),
+      ),
+      body: Center(
+        child: Container(
+          margin: const EdgeInsets.all(10.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: <Widget>[
+              FutureBuilder(
+                  future: dbRef.once(),
+                  builder: (context, AsyncSnapshot<DataSnapshot> snapshot) {
+                    if (snapshot.hasData) {
+                      lists.clear();
+                      Map<dynamic, dynamic> values = snapshot.data.value;
+                      values.forEach((key, values) {
+
+                        lists.add(values);
+                      });
+                      return new ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: lists.length,
+                        itemBuilder: (BuildContext context, int index) {
+                          return Card(
+                            child: InkWell(
+                              splashColor: Colors.purple.withAlpha(30),
+                              onTap: () {
+                                //print('Card tapped.');
+                              },
+                              child: Container(
+                                height: 100,
+                                width: double.infinity,
+                                child: Padding(
+                                  padding: EdgeInsets.all(1.0),
+                                  child: TextButton(
+                                    style: TextButton.styleFrom(
+                                      primary: Colors.white,
+                                      //backgroundColor: Colors.grey,
+                                    ),
+                                    onPressed: () {
+                                      deleteConfirmation(context, index);
+                                      //setState((){});
+                                    },
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                                      children: <Widget>[
+                                        //Text("Index: " + '$index'),
+                                        Text("Guest: " + lists[index]["guest"]),
+                                        Text("Hotel: " + lists[index]["hotel"]),
+                                        Text("Room: " + lists[index]["room"]),
+                                        Text("Check-In: " + lists[index]["sDate"]),
+                                        Text("Check-Out: " + lists[index]["eDate"]),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+                      );
+                    }
+                    return CircularProgressIndicator();
+                  }),
+              Card(
+                //height: 100,
+                child: InkWell(
+                  splashColor: Colors.purple.withAlpha(30),
+                  onTap: () {
+                    //print('Card tapped.');
+                  },
+                  child: Container(
+                    height: 40,
+                    width: double.infinity,
+                    child: Padding(
+                      padding: EdgeInsets.all(5.0),
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        child: Text('Go back'),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+void deleteConfirmation(BuildContext context, int index) {
+  //Cancel Button
+  Widget cancelButton = TextButton(
+    child: Text("Cancel"),
+    onPressed: () {
+      Navigator.of(context).pop();
+    },
+  );
+
+  //Delete Button
+  Widget deleteButton = TextButton(
+    child: Text("Delete"),
+    onPressed: () {
+      deleteBooking(index);
+      Navigator.of(context).pop();
+      Navigator.of(context).pop();
+      //setState((){});
+      //context.reassemble();
+    },
+  );
+
+  //Alert Dialog
+  AlertDialog alert = AlertDialog(
+    title: Text("Delete Booking"),
+    content: Text("Are sure you want to delete this booking? This can not be undone."),
+    actions: [
+      cancelButton,
+      deleteButton,
+    ],
+  );
+
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return alert;
+    },
+  );
+}
+
+void deleteBooking(int index) {
+  final dbRef = FirebaseDatabase.instance.reference().child("Booking");
+  index+=1;
+  dbRef.child('B'+'$index').remove();
+  index-=1;
+}
+
 void createData() {
   final dbRef = FirebaseDatabase.instance.reference().child("Booking");
   dbRef.child("B3").set({
