@@ -1,7 +1,8 @@
 import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/material.dart';
-
+import 'package:intl/intl.dart';
+import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -31,8 +32,8 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         brightness: Brightness.dark,
         backgroundColor: Colors.blueGrey.shade100,
-        primaryColor: Color(0xffbb86fc),
-        accentColor: Color(0xffbb86fc),
+        primaryColor: Colors.purple,
+        accentColor: Colors.purple,
         // This is the theme of your application.
         //
         // Try running your application with "flutter run". You'll see the
@@ -43,7 +44,7 @@ class MyApp extends StatelessWidget {
         // Notice that the counter didn't reset back to zero; the application
         // is not restarted.
         primarySwatch: Colors.purple,
-        buttonColor: Color(0xffbb86fc),
+        buttonColor: Colors.purple,
         //primaryColor: Colors.black54,
         // This makes the visual density adapt to the platform that you run
         // the app on. For desktop platforms, the controls will be smaller and
@@ -91,23 +92,6 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-
-    DatabaseReference _testRef = FirebaseDatabase.instance.reference().child("test");
-    _testRef.set("Hello World ${Random().nextInt(100)}");
-
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     // This method is rerun every time setState is called, for instance as done
@@ -149,8 +133,8 @@ class _MyHomePageState extends State<MyHomePage> {
                   child: SizedBox(
                     height: 40,
                     width: 225,
-                    child: RaisedButton(
-                      textColor: Color(0xFF303030),
+                    child: ElevatedButton(
+                      //textColor: Colors.white,
                       onPressed: () {
                         Navigator.push(
                           context,
@@ -166,8 +150,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 child: SizedBox(
                   height: 40,
                   width: 225,
-                  child: RaisedButton(
-                    textColor: Color(0xFF303030),
+                  child: ElevatedButton(
                     onPressed: () {
                       createData();
                       Navigator.push(
@@ -186,8 +169,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 child: SizedBox(
                   height: 40,
                   width: 225,
-                  child: RaisedButton(
-                    textColor: Color(0xFF303030),
+                  child: ElevatedButton(
                     onPressed: () {},
                     child: const Text('Update Booking', style: TextStyle(fontSize: 20)),
                   ),
@@ -198,8 +180,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 child: SizedBox(
                   height: 40,
                   width: 225,
-                  child: RaisedButton(
-                    textColor: Color(0xFF303030),
+                  child: ElevatedButton(
                     onPressed: () {
                       Navigator.push(
                         context,
@@ -210,23 +191,10 @@ class _MyHomePageState extends State<MyHomePage> {
                   ),
                 ),
               ),
-              Text(
-                'You have pushed the button this many times:',
-              ),
-              Text(
-                '$_counter',
-                style: Theme.of(context).textTheme.headline4,
-              ),
             ],
           ),
         ),
-
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }
@@ -264,8 +232,55 @@ class MyCustomForm extends StatefulWidget {
 // Create a corresponding State class.
 // This class holds data related to the form.
 class MyCustomFormState extends State<MyCustomForm> {
-  final dbRef = FirebaseDatabase.instance.reference().child("Guests");
+  final dbBooking = FirebaseDatabase.instance.reference().child("Booking");
+  final dbGuests = FirebaseDatabase.instance.reference().child("Guests");
+  final dbHotels = FirebaseDatabase.instance.reference().child("Hotels");
+  DatabaseReference dbRooms = FirebaseDatabase.instance.reference().child("Rooms").child("H1");
+
+  dynamic _guest = '';
+  dynamic _hotel = '';
+  dynamic _room = '';
+  dynamic _sDate;
+  DateTime _inDate;
+  dynamic _eDate;
+
   List<DropdownMenuItem<dynamic>> guestList = [];
+  List<DropdownMenuItem<dynamic>> hotelList = [];
+  List<DropdownMenuItem<dynamic>> roomList = [];
+  int index = 0;
+  bool disableDropdown = true;
+
+  String _dateCount;
+  String _range;
+
+
+  @override
+  void initState() {
+    _dateCount = '';
+    _range = '';
+    super.initState();
+  }
+  void _onSelectionChanged(DateRangePickerSelectionChangedArgs args) {
+    setState(() {
+      if (args.value is PickerDateRange) {
+        _sDate = DateFormat('MM/dd/yyyy').format(args.value.startDate).toString();
+        _inDate = args.value.startDate;
+        _eDate = DateFormat('MM/dd/yyyy').format(args.value.endDate ?? args.value.startDate).toString();
+        _range =
+            DateFormat('MM/dd/yyyy').format(args.value.startDate).toString() +
+                ' - ' +
+                DateFormat('MM/dd/yyyy')
+                    .format(args.value.endDate ?? args.value.startDate)
+                    .toString();
+      } else if (args.value is DateTime) {
+      } else if (args.value is List<DateTime>) {
+        _dateCount = args.value.length.toString();
+      }
+      //print("range: " + _range.toString());
+      //print("sDate: " + _sDate.toString());
+      //print("eDate: " + _eDate.toString());
+    });
+  }
   // Create a global key that uniquely identifies the Form widget
   // and allows validation of the form.
   //
@@ -282,88 +297,162 @@ class MyCustomFormState extends State<MyCustomForm> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           FutureBuilder(
-            future: dbRef.once(),
+            future: dbGuests.once(),
             builder: (context, AsyncSnapshot<DataSnapshot> snapshot) {
               if (snapshot.hasData) {
                 guestList.clear();
-                List<DropdownMenuItem<dynamic>> values = snapshot.data.value;
-                values.forEach((values) {
-                  guestList.add(values);
+                Map<dynamic, dynamic> values = snapshot.data.value;
+                //print(snapshot.data.value);
+                index = 0;
+                values.forEach((key, values) {
+                  guestList.add(
+                    DropdownMenuItem<dynamic>(
+                      child: Text(values["Name"]),
+                      value: key,
+                    )
+                  );
+                  index++;
                 });
                 return DropdownButtonFormField(
-                    items: guestList
+                  items: guestList,
+                  hint: Text("Select a guest"),
+                  onChanged: (value) {
+                    setState(() {
+                      _guest = value;
+                    });
+                  },
                 );
               }
               return CircularProgressIndicator();
             }),
-          /*
-          TextFormField(
-            decoration: InputDecoration(
-              hintText: 'Guest',
-            ),
-            validator: (value) {
-              if (value.isEmpty) {
-                return 'required';
+          FutureBuilder(
+            future: dbHotels.once(),
+            builder: (context, AsyncSnapshot<DataSnapshot> snapshot) {
+              if (snapshot.hasData) {
+                hotelList.clear();
+                Map<dynamic, dynamic> values = snapshot.data.value;
+                //print(snapshot.data.value);
+                index = 0;
+                values.forEach((key, values) {
+                  hotelList.add(
+                    DropdownMenuItem<dynamic>(
+                      child: Text(values["hName"]),
+                      value: key,
+                    )
+                  );
+                  index++;
+                });
+                return DropdownButtonFormField(
+                  items: hotelList,
+                  hint: Text("Select a hotel"),
+                  onChanged: (value) {
+                    setState(() {
+                      _hotel = value;
+                      disableDropdown = false;
+                      dbRooms = FirebaseDatabase.instance.reference().child("Rooms").child(_hotel);
+                    });
+                    //_loadRooms(_hotel);
+                  },
+                );
               }
-              return null;
-            },
-          ),
-          TextFormField(
-            decoration: InputDecoration(
-              hintText: 'Hotel',
-            ),
-            validator: (value) {
-              if (value.isEmpty) {
-                return 'required';
+              return CircularProgressIndicator();
+            }),
+          FutureBuilder(
+            future: dbRooms.once(),
+            builder: (context, AsyncSnapshot<DataSnapshot> snapshot) {
+              if (snapshot.hasData) {
+                roomList.clear();
+                Map<dynamic, dynamic> values = snapshot.data.value;
+                //print(snapshot.data.value);
+                index = 0;
+                values.forEach((key, values) {
+                  roomList.add(
+                      DropdownMenuItem<dynamic>(
+                        child: Text(values["price"].toString()),
+                        value: key,
+                      )
+                  );
+                  index++;
+                });
+                return DropdownButtonFormField(
+                  items: roomList,
+                  hint: Text("Select a room price"),
+                  disabledHint: Text("Select a hotel first"),
+                  //value: guestList[0].value,
+                  onChanged: disableDropdown ? null : (value) {
+                    setState(() {
+                      _room = value;
+                    });
+                  },
+                );
               }
-              return null;
-            },
-          ),
-          TextFormField(
-            decoration: InputDecoration(
-              hintText: 'Room',
+              return CircularProgressIndicator();
+            }),
+          Padding(
+            padding: EdgeInsets.all(10.0),
+            child: SfDateRangePicker(
+              onSelectionChanged: _onSelectionChanged,
+              selectionMode: DateRangePickerSelectionMode.range,
+              initialSelectedRange: PickerDateRange(
+                  DateTime.now(),
+                  DateTime.now(),
+              ),
             ),
-            validator: (value) {
-              if (value.isEmpty) {
-                return 'required';
-              }
-              return null;
-            },
           ),
-          TextFormField(
-            decoration: InputDecoration(
-              hintText: 'Check-In Date',
-            ),
-            validator: (value) {
-              if (value.isEmpty) {
-                return 'required';
-              }
-              return null;
-            },
-          ),
-          TextFormField(
-            decoration: InputDecoration(
-              hintText: 'Check-Out Date',
-            ),
-            validator: (value) {
-              if (value.isEmpty) {
-                return 'required';
-              }
-              return null;
-            },
-          ),
-           */
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 16.0),
             child: ElevatedButton(
-              onPressed: () {
+              style: ButtonStyle(
+                backgroundColor: MaterialStateProperty.resolveWith((states) => Colors.purple),
+              ),
+              onPressed: () async {
+                bool dateValid = false;
+                bool fieldValid = false;
+
+
+                if (_sDate == _eDate) {
+                  ScaffoldMessenger.of(context)
+                      .showSnackBar(SnackBar(content: Text('Check-In and Check-Out dates can not be the same')));
+                } else if (_inDate.isBefore(DateTime.now().subtract(Duration(days: 1)))) {
+                  ScaffoldMessenger.of(context)
+                      .showSnackBar(SnackBar(content: Text('Check-In date can not be before today')));
+                } else {
+                  dateValid = true;
+                }
+                if (_guest == '' || _hotel == '' || _room == '') {
+                  ScaffoldMessenger.of(context)
+                      .showSnackBar(SnackBar(content: Text('Please select all fields')));
+                } else {
+                  fieldValid = true;
+                }
+                if (dateValid && fieldValid) {
+                  DataSnapshot snap = await dbBooking.once();
+                  //print(snap.value);
+                  Map<dynamic, dynamic> resultList = snap.value;
+                  dynamic count = resultList.length + 1;
+                  print(count);
+                  //print(resultList.keys);
+                  dbBooking.child("B" + count.toString()).set({
+                    'eDate': _eDate,
+                    'guest': _guest,
+                    'hotel': _hotel,
+                    'room': _room,
+                    'sDate': _sDate,
+                  });
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => MyApp()),
+                  );
+                }
                 // Validate returns true if the form is valid, or false
                 // otherwise.
+                /*
                 if (_formKey.currentState.validate()) {
                   // If the form is valid, display a Snackbar.
                   ScaffoldMessenger.of(context)
                       .showSnackBar(SnackBar(content: Text('Processing Data')));
                 }
+                */
               },
               child: Text('Submit'),
             ),
@@ -374,13 +463,13 @@ class MyCustomFormState extends State<MyCustomForm> {
   }
 }
 
-
 class CreateBooking extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final appTitle = 'Form Validation Demo';
+    final appTitle = 'Create Booking';
     return MaterialApp(
       title: appTitle,
+      theme: ThemeData.dark().copyWith(accentColor: Colors.purple),
       home: Scaffold(
         appBar: AppBar(
           title: Text(appTitle),
@@ -390,7 +479,6 @@ class CreateBooking extends StatelessWidget {
     );
   }
 }
-
 
 class HotelList extends StatelessWidget {
   final dbRef = FirebaseDatabase.instance.reference().child("Hotels");
@@ -414,6 +502,7 @@ class HotelList extends StatelessWidget {
                       if (snapshot.hasData) {
                         lists.clear();
                         Map<dynamic, dynamic> values = snapshot.data.value;
+                        print(snapshot.data.value);
                         values.forEach((key, values) {
                           lists.add(values);
                         });
@@ -567,6 +656,7 @@ class BookingList extends StatelessWidget {
 class DeleteBookingList extends StatelessWidget {
   final dbRef = FirebaseDatabase.instance.reference().child("Booking");
   List<Map<dynamic, dynamic>> lists = [];
+  List<String> keys = [];
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -584,11 +674,18 @@ class DeleteBookingList extends StatelessWidget {
                   builder: (context, AsyncSnapshot<DataSnapshot> snapshot) {
                     if (snapshot.hasData) {
                       lists.clear();
+                      keys.clear();
                       Map<dynamic, dynamic> values = snapshot.data.value;
+                      print(snapshot.data.value);
+                      print(values);
+                      dynamic key = snapshot.data.key;
                       values.forEach((key, values) {
-
                         lists.add(values);
+                        keys.add(key);
                       });
+                      //lists.map((values) => keys);
+                      print(lists);
+                      print(keys);
                       return new ListView.builder(
                         shrinkWrap: true,
                         itemCount: lists.length,
@@ -610,7 +707,7 @@ class DeleteBookingList extends StatelessWidget {
                                       //backgroundColor: Colors.grey,
                                     ),
                                     onPressed: () {
-                                      deleteConfirmation(context, index);
+                                      deleteConfirmation(context, keys[index]);
                                       //setState((){});
                                     },
                                     child: Column(
@@ -664,7 +761,7 @@ class DeleteBookingList extends StatelessWidget {
   }
 }
 
-void deleteConfirmation(BuildContext context, int index) {
+void deleteConfirmation(BuildContext context, dynamic key) {
   //Cancel Button
   Widget cancelButton = TextButton(
     child: Text("Cancel"),
@@ -677,7 +774,7 @@ void deleteConfirmation(BuildContext context, int index) {
   Widget deleteButton = TextButton(
     child: Text("Delete"),
     onPressed: () {
-      deleteBooking(index);
+      deleteBooking(key);
       Navigator.of(context).pop();
       Navigator.of(context).pop();
       //setState((){});
@@ -688,7 +785,7 @@ void deleteConfirmation(BuildContext context, int index) {
   //Alert Dialog
   AlertDialog alert = AlertDialog(
     title: Text("Delete Booking"),
-    content: Text("Are sure you want to delete this booking? This can not be undone."),
+    content: Text("Are sure you want to delete booking: " + key.toString() + "? This can not be undone."),
     actions: [
       cancelButton,
       deleteButton,
@@ -703,11 +800,9 @@ void deleteConfirmation(BuildContext context, int index) {
   );
 }
 
-void deleteBooking(int index) {
+void deleteBooking(dynamic key) {
   final dbRef = FirebaseDatabase.instance.reference().child("Booking");
-  index+=1;
-  dbRef.child('B'+'$index').remove();
-  index-=1;
+  dbRef.child(key).remove();
 }
 
 void createData() {
