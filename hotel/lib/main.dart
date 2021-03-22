@@ -8,7 +8,12 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 
-
+dynamic bookingIndex;
+dynamic bookingGuest;
+dynamic bookingHotel;
+dynamic bookingRoom;
+dynamic bookingSDate;
+dynamic bookingEDate;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -152,12 +157,9 @@ class _MyHomePageState extends State<MyHomePage> {
                   width: 225,
                   child: ElevatedButton(
                     onPressed: () {
-                      createData();
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => CreateBooking()),
-                        //MaterialPageRoute(builder: (context) => BookingList()),
-                        //MaterialPageRoute(builder: (context) => SecondRoute()),
                       );
                     },
                     child: const Text('Create Booking', style: TextStyle(fontSize: 20)),
@@ -170,7 +172,12 @@ class _MyHomePageState extends State<MyHomePage> {
                   height: 40,
                   width: 225,
                   child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => BookingList()),
+                      );
+                    },
                     child: const Text('Update Booking', style: TextStyle(fontSize: 20)),
                   ),
                 ),
@@ -199,39 +206,101 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-class FirstRoute extends StatelessWidget {
+///=============================================================================
+///List Hotels
+///=============================================================================
+class HotelList extends StatelessWidget {
+  final dbRef = FirebaseDatabase.instance.reference().child("Hotels");
+  List<Map<dynamic, dynamic>> lists = [];
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('First Route'),
+        title: Text("Hotel List"),
       ),
       body: Center(
-        child: ElevatedButton(
-          child: Text('Open route'),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => HotelList()),
-            );
-          },
+        child: Container(
+          margin: const EdgeInsets.all(10.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: <Widget>[
+              FutureBuilder(
+                  future: dbRef.once(),
+                  builder: (context, AsyncSnapshot<DataSnapshot> snapshot) {
+                    if (snapshot.hasData) {
+                      lists.clear();
+                      Map<dynamic, dynamic> values = snapshot.data.value;
+                      values.forEach((key, values) {
+                        lists.add(values);
+                      });
+                      return new Container(
+                          margin: EdgeInsets.only(left: 0.0, right: 0.0, bottom: 0.0),
+                          height: MediaQuery.of(context).size.height - 148 ,
+                          child: ListView (children: new List.generate( lists.length, (int index){
+                            return Card(
+                              child: InkWell(
+                                splashColor: Colors.purple.withAlpha(30),
+                                child: Container(
+                                  height: 40,
+                                  width: double.infinity,
+                                  child: Padding(
+                                    padding: EdgeInsets.all(10.0),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: <Widget>[
+                                        Text(lists[index]["hName"]),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }))
+                      );
+                    }
+                    return CircularProgressIndicator();
+                  }),
+              Card(
+                //height: 100,
+                child: InkWell(
+                  splashColor: Colors.purple.withAlpha(30),
+                  child: Container(
+                    height: 40,
+                    width: double.infinity,
+                    child: Padding(
+                      padding: EdgeInsets.all(5.0),
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        child: Text('Go back'),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
+///=============================================================================
+///Create Booking
+///=============================================================================
 // Create a Form widget.
-class MyCustomForm extends StatefulWidget {
+class CreateForm extends StatefulWidget {
   @override
-  MyCustomFormState createState() {
-    return MyCustomFormState();
+  CreateFormState createState() {
+    return CreateFormState();
   }
 }
 
 // Create a corresponding State class.
 // This class holds data related to the form.
-class MyCustomFormState extends State<MyCustomForm> {
+class CreateFormState extends State<CreateForm> {
   final dbBooking = FirebaseDatabase.instance.reference().child("Booking");
   final dbGuests = FirebaseDatabase.instance.reference().child("Guests");
   final dbHotels = FirebaseDatabase.instance.reference().child("Hotels");
@@ -243,6 +312,399 @@ class MyCustomFormState extends State<MyCustomForm> {
   dynamic _sDate;
   DateTime _inDate;
   dynamic _eDate;
+
+  List<DropdownMenuItem<dynamic>> guestList = [];
+  List<DropdownMenuItem<dynamic>> hotelList = [];
+  List<DropdownMenuItem<dynamic>> roomList = [];
+  int index = 0;
+  bool disableDropdown = true;
+
+  String _dateCount;
+  String _range;
+
+  @override
+  void initState() {
+    _dateCount = '';
+    _range = '';
+    super.initState();
+  }
+  void _onSelectionChanged(DateRangePickerSelectionChangedArgs args) {
+    setState(() {
+      if (args.value is PickerDateRange) {
+        _sDate = DateFormat('MM/dd/yyyy').format(args.value.startDate).toString();
+        _inDate = args.value.startDate;
+        _eDate = DateFormat('MM/dd/yyyy').format(args.value.endDate ?? args.value.startDate).toString();
+        _range =
+            DateFormat('MM/dd/yyyy').format(args.value.startDate).toString() +
+                ' - ' +
+                DateFormat('MM/dd/yyyy')
+                    .format(args.value.endDate ?? args.value.startDate)
+                    .toString();
+      } else if (args.value is DateTime) {
+      } else if (args.value is List<DateTime>) {
+        _dateCount = args.value.length.toString();
+      }
+    });
+  }
+  // Create a global key that uniquely identifies the Form widget
+  // and allows validation of the form.
+  //
+  // Note: This is a GlobalKey<FormState>,
+  // not a GlobalKey<MyCustomFormState>.
+  final _formKey = GlobalKey<FormState>();
+
+  @override
+  Widget build(BuildContext context) {
+    // Build a Form widget using the _formKey created above.
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: <Widget>[
+          FutureBuilder(
+            future: dbGuests.once(),
+            builder: (context, AsyncSnapshot<DataSnapshot> snapshot) {
+              if (snapshot.hasData) {
+                guestList.clear();
+                Map<dynamic, dynamic> values = snapshot.data.value;
+                index = 0;
+                values.forEach((key, values) {
+                  guestList.add(
+                    DropdownMenuItem<dynamic>(
+                      child: Text(values["Name"]),
+                      value: key,
+                    )
+                  );
+                  index++;
+                });
+                return DropdownButtonFormField(
+                  items: guestList,
+                  hint: Text("Select a guest"),
+                  onChanged: (value) {
+                    setState(() {
+                      _guest = value;
+                    });
+                  },
+                );
+              }
+              return CircularProgressIndicator();
+            }),
+          FutureBuilder(
+            future: dbHotels.once(),
+            builder: (context, AsyncSnapshot<DataSnapshot> snapshot) {
+              if (snapshot.hasData) {
+                hotelList.clear();
+                Map<dynamic, dynamic> values = snapshot.data.value;
+                index = 0;
+                values.forEach((key, values) {
+                  hotelList.add(
+                    DropdownMenuItem<dynamic>(
+                      child: Text(values["hName"]),
+                      value: key,
+                    )
+                  );
+                  index++;
+                });
+                return DropdownButtonFormField(
+                  items: hotelList,
+                  hint: Text("Select a hotel"),
+                  onChanged: (value) {
+                    setState(() {
+                      _hotel = value;
+                      disableDropdown = false;
+                      dbRooms = FirebaseDatabase.instance.reference().child("Rooms").child(_hotel);
+                    });
+                    //_loadRooms(_hotel);
+                  },
+                );
+              }
+              return CircularProgressIndicator();
+            }),
+          FutureBuilder(
+            future: dbRooms.once(),
+            builder: (context, AsyncSnapshot<DataSnapshot> snapshot) {
+              if (snapshot.hasData) {
+                roomList.clear();
+                Map<dynamic, dynamic> values = snapshot.data.value;
+                index = 0;
+                values.forEach((key, values) {
+                  roomList.add(
+                      DropdownMenuItem<dynamic>(
+                        child: Text(values["price"].toString()),
+                        value: key,
+                      )
+                  );
+                  index++;
+                });
+                return DropdownButtonFormField(
+                  items: roomList,
+                  hint: Text("Select a room price"),
+                  disabledHint: Text("Select a hotel first"),
+                  onChanged: disableDropdown ? null : (value) {
+                    setState(() {
+                      _room = value;
+                    });
+                  },
+                );
+              }
+              return CircularProgressIndicator();
+            }),
+          Padding(
+            padding: EdgeInsets.all(10.0),
+            child: SfDateRangePicker(
+              onSelectionChanged: _onSelectionChanged,
+              selectionMode: DateRangePickerSelectionMode.range,
+              initialSelectedRange: PickerDateRange(
+                  DateTime.now(),
+                  DateTime.now(),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16.0),
+            child: ElevatedButton(
+              style: ButtonStyle(
+                backgroundColor: MaterialStateProperty.resolveWith((states) => Colors.purple),
+              ),
+              onPressed: () async {
+                bool dateValid = false;
+                bool fieldValid = false;
+
+                if (_sDate == _eDate) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Check-In and Check-Out dates can not be the same',
+                          style: TextStyle(
+                            color: Colors.white,
+                          )
+                        ),
+                      backgroundColor: Colors.purple,
+                      )
+                    );
+                } else if (_inDate.isBefore(DateTime.now().subtract(Duration(days: 1)))) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Check-In date can not be before today',
+                          style: TextStyle(
+                            color: Colors.white,
+                          )
+                        ),
+                        backgroundColor: Colors.purple,
+                      )
+                    );
+                } else {
+                  dateValid = true;
+                }
+                if (_guest == '' || _hotel == '' || _room == '') {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Please select all fields',
+                          style: TextStyle(
+                            color: Colors.white,
+                          )
+                        ),
+                        backgroundColor: Colors.purple,
+                      )
+                    );
+                } else {
+                  fieldValid = true;
+                }
+                if (dateValid && fieldValid) {
+                  dynamic newBooking = dbBooking.push();
+                  newBooking.set({
+                    'eDate': _eDate,
+                    'guest': _guest,
+                    'hotel': _hotel,
+                    'room': _room,
+                    'sDate': _sDate,
+                  });
+                  Navigator.of(context, rootNavigator: true).pop();
+                }
+              },
+              child: Text('Submit'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class CreateBooking extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final appTitle = 'Create Booking';
+    return MaterialApp(
+      title: appTitle,
+      theme: ThemeData.dark().copyWith(accentColor: Colors.purple),
+      home: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.purple,
+          title: Text(appTitle),
+        ),
+        body: CreateForm(),
+      ),
+    );
+  }
+}
+
+///=============================================================================
+///Update Booking
+///=============================================================================
+class BookingList extends StatelessWidget {
+  final dbRef = FirebaseDatabase.instance.reference().child("Booking");
+  List<Map<dynamic, dynamic>> lists = [];
+  List<String> keys = [];
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("Update Booking"),
+      ),
+      body: Center(
+        child: Container(
+          margin: const EdgeInsets.all(10.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: <Widget>[
+              FutureBuilder(
+                  future: dbRef.once(),
+                  builder: (context, AsyncSnapshot<DataSnapshot> snapshot) {
+                    if (snapshot.hasData) {
+                      lists.clear();
+                      keys.clear();
+                      Map<dynamic, dynamic> values = snapshot.data.value;
+                      dynamic key = snapshot.data.key;
+                      values.forEach((key, values) {
+                        lists.add(values);
+                        keys.add(key);
+                      });
+                      return new Container(
+                          margin: EdgeInsets.only(left: 0.0, right: 0.0, bottom: 0.0),
+                          height: MediaQuery.of(context).size.height - 148 ,
+                          child: ListView (children: new List.generate( lists.length, (int index){
+                            return Card(
+                              child: InkWell(
+                                splashColor: Colors.purple.withAlpha(30),
+                                onTap: () {
+                                },
+                                child: Container(
+                                  height: 100,
+                                  width: double.infinity,
+                                  child: Padding(
+                                    padding: EdgeInsets.all(1.0),
+                                    child: TextButton(
+                                      style: TextButton.styleFrom(
+                                        primary: Colors.white,
+                                      ),
+                                      onPressed: () async {
+                                        bookingIndex = keys[index];
+                                        bookingGuest = lists[index]["guest"];
+                                        bookingHotel = lists[index]["hotel"];
+                                        bookingRoom = lists[index]["room"];
+                                        bookingSDate = lists[index]["sDate"];
+                                        bookingEDate = lists[index]["eDate"];
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(builder: (context) => UpdateBooking()),
+                                        );
+                                      },
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                                        children: <Widget>[
+                                          Text("Guest: " + lists[index]["guest"]),
+                                          Text("Hotel: " + lists[index]["hotel"]),
+                                          Text("Room: " + lists[index]["room"]),
+                                          Text("Check-In: " + lists[index]["sDate"]),
+                                          Text("Check-Out: " + lists[index]["eDate"]),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+
+                          })
+                          )
+                      );
+                    }
+                    return CircularProgressIndicator();
+                  }),
+              Card(
+                //height: 100,
+                child: InkWell(
+                  splashColor: Colors.purple.withAlpha(30),
+                  onTap: () {
+                    //print('Card tapped.');
+                  },
+                  child: Container(
+                    height: 40,
+                    width: double.infinity,
+                    child: Padding(
+                      padding: EdgeInsets.all(5.0),
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        child: Text('Go back'),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class UpdateBooking extends StatelessWidget {
+  dynamic index;
+  @override
+  Widget build(BuildContext context) {
+    final appTitle = 'Update Booking';
+    return MaterialApp(
+      title: appTitle,
+      theme: ThemeData.dark().copyWith(accentColor: Colors.purple),
+      home: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.purple,
+          title: Text(appTitle),
+        ),
+        body: UpdateForm(),
+      ),
+    );
+  }
+}
+// Create a Form widget.
+class UpdateForm extends StatefulWidget {
+  dynamic index;
+  @override
+  UpdateFormState createState() {
+    return UpdateFormState();
+  }
+}
+
+// Create a corresponding State class.
+// This class holds data related to the form.
+class UpdateFormState extends State<UpdateForm> {
+  final dbBooking = FirebaseDatabase.instance.reference().child("Booking");
+  final dbGuests = FirebaseDatabase.instance.reference().child("Guests");
+  final dbHotels = FirebaseDatabase.instance.reference().child("Hotels");
+  DatabaseReference dbRooms = FirebaseDatabase.instance.reference().child("Rooms").child("H1");
+
+  dynamic _guest = bookingGuest;
+  dynamic _hotel = bookingHotel;
+  dynamic _room = bookingRoom;
+  dynamic _sDate = bookingSDate;
+  DateTime _inDate;
+  dynamic _eDate = bookingEDate;
 
   List<DropdownMenuItem<dynamic>> guestList = [];
   List<DropdownMenuItem<dynamic>> hotelList = [];
@@ -276,9 +738,6 @@ class MyCustomFormState extends State<MyCustomForm> {
       } else if (args.value is List<DateTime>) {
         _dateCount = args.value.length.toString();
       }
-      //print("range: " + _range.toString());
-      //print("sDate: " + _sDate.toString());
-      //print("eDate: " + _eDate.toString());
     });
   }
   // Create a global key that uniquely identifies the Form widget
@@ -294,108 +753,107 @@ class MyCustomFormState extends State<MyCustomForm> {
     return Form(
       key: _formKey,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: <Widget>[
           FutureBuilder(
-            future: dbGuests.once(),
-            builder: (context, AsyncSnapshot<DataSnapshot> snapshot) {
-              if (snapshot.hasData) {
-                guestList.clear();
-                Map<dynamic, dynamic> values = snapshot.data.value;
-                //print(snapshot.data.value);
-                index = 0;
-                values.forEach((key, values) {
-                  guestList.add(
-                    DropdownMenuItem<dynamic>(
-                      child: Text(values["Name"]),
-                      value: key,
-                    )
+              future: dbGuests.once(),
+              builder: (context, AsyncSnapshot<DataSnapshot> snapshot) {
+                if (snapshot.hasData) {
+                  guestList.clear();
+                  Map<dynamic, dynamic> values = snapshot.data.value;
+                  index = 0;
+                  values.forEach((key, values) {
+                    guestList.add(
+                        DropdownMenuItem<dynamic>(
+                          child: Text(values["Name"]),
+                          value: key,
+                        )
+                    );
+                    index++;
+                  });
+                  return DropdownButtonFormField(
+                    items: guestList,
+                    hint: Text("Select a guest"),
+                    value: bookingGuest,
+                    onChanged: (value) {
+                      setState(() {
+                        _guest = value;
+                      });
+                    },
                   );
-                  index++;
-                });
-                return DropdownButtonFormField(
-                  items: guestList,
-                  hint: Text("Select a guest"),
-                  onChanged: (value) {
-                    setState(() {
-                      _guest = value;
-                    });
-                  },
-                );
-              }
-              return CircularProgressIndicator();
-            }),
+                }
+                return CircularProgressIndicator();
+              }),
           FutureBuilder(
-            future: dbHotels.once(),
-            builder: (context, AsyncSnapshot<DataSnapshot> snapshot) {
-              if (snapshot.hasData) {
-                hotelList.clear();
-                Map<dynamic, dynamic> values = snapshot.data.value;
-                //print(snapshot.data.value);
-                index = 0;
-                values.forEach((key, values) {
-                  hotelList.add(
-                    DropdownMenuItem<dynamic>(
-                      child: Text(values["hName"]),
-                      value: key,
-                    )
+              future: dbHotels.once(),
+              builder: (context, AsyncSnapshot<DataSnapshot> snapshot) {
+                if (snapshot.hasData) {
+                  hotelList.clear();
+                  Map<dynamic, dynamic> values = snapshot.data.value;
+                  index = 0;
+                  values.forEach((key, values) {
+                    hotelList.add(
+                        DropdownMenuItem<dynamic>(
+                          child: Text(values["hName"]),
+                          value: key,
+                        )
+                    );
+                    index++;
+                  });
+                  return DropdownButtonFormField(
+                    items: hotelList,
+                    hint: Text("Select a hotel"),
+                    value: bookingHotel,
+                    onChanged: (value) {
+                      setState(() {
+                        _hotel = value;
+                        disableDropdown = false;
+                        dbRooms = FirebaseDatabase.instance.reference().child("Rooms").child(_hotel);
+                      });
+                      //_loadRooms(_hotel);
+                    },
                   );
-                  index++;
-                });
-                return DropdownButtonFormField(
-                  items: hotelList,
-                  hint: Text("Select a hotel"),
-                  onChanged: (value) {
-                    setState(() {
-                      _hotel = value;
-                      disableDropdown = false;
-                      dbRooms = FirebaseDatabase.instance.reference().child("Rooms").child(_hotel);
-                    });
-                    //_loadRooms(_hotel);
-                  },
-                );
-              }
-              return CircularProgressIndicator();
-            }),
+                }
+                return CircularProgressIndicator();
+              }),
           FutureBuilder(
-            future: dbRooms.once(),
-            builder: (context, AsyncSnapshot<DataSnapshot> snapshot) {
-              if (snapshot.hasData) {
-                roomList.clear();
-                Map<dynamic, dynamic> values = snapshot.data.value;
-                //print(snapshot.data.value);
-                index = 0;
-                values.forEach((key, values) {
-                  roomList.add(
-                      DropdownMenuItem<dynamic>(
-                        child: Text(values["price"].toString()),
-                        value: key,
-                      )
+              future: dbRooms.once(),
+              builder: (context, AsyncSnapshot<DataSnapshot> snapshot) {
+                if (snapshot.hasData) {
+                  roomList.clear();
+                  Map<dynamic, dynamic> values = snapshot.data.value;
+                  index = 0;
+                  values.forEach((key, values) {
+                    roomList.add(
+                        DropdownMenuItem<dynamic>(
+                          child: Text(values["price"].toString()),
+                          value: key,
+                        )
+                    );
+                    index++;
+                  });
+                  return DropdownButtonFormField(
+                    items: roomList,
+                    hint: Text("Select a room price"),
+                    disabledHint: Text("Select a hotel first"),
+                    value: bookingRoom,
+                    onChanged: (value) {
+                      setState(() {
+                        _room = value;
+                      });
+                    },
                   );
-                  index++;
-                });
-                return DropdownButtonFormField(
-                  items: roomList,
-                  hint: Text("Select a room price"),
-                  disabledHint: Text("Select a hotel first"),
-                  //value: guestList[0].value,
-                  onChanged: disableDropdown ? null : (value) {
-                    setState(() {
-                      _room = value;
-                    });
-                  },
-                );
-              }
-              return CircularProgressIndicator();
-            }),
+                }
+                return CircularProgressIndicator();
+              }),
           Padding(
             padding: EdgeInsets.all(10.0),
             child: SfDateRangePicker(
               onSelectionChanged: _onSelectionChanged,
               selectionMode: DateRangePickerSelectionMode.range,
               initialSelectedRange: PickerDateRange(
-                  DateTime.now(),
-                  DateTime.now(),
+                DateFormat("MM/dd/yy").parse(bookingSDate),
+                DateFormat("MM/dd/yy").parse(bookingEDate),
               ),
             ),
           ),
@@ -405,54 +863,16 @@ class MyCustomFormState extends State<MyCustomForm> {
               style: ButtonStyle(
                 backgroundColor: MaterialStateProperty.resolveWith((states) => Colors.purple),
               ),
-              onPressed: () async {
-                bool dateValid = false;
-                bool fieldValid = false;
-
-
-                if (_sDate == _eDate) {
-                  ScaffoldMessenger.of(context)
-                      .showSnackBar(SnackBar(content: Text('Check-In and Check-Out dates can not be the same')));
-                } else if (_inDate.isBefore(DateTime.now().subtract(Duration(days: 1)))) {
-                  ScaffoldMessenger.of(context)
-                      .showSnackBar(SnackBar(content: Text('Check-In date can not be before today')));
-                } else {
-                  dateValid = true;
-                }
-                if (_guest == '' || _hotel == '' || _room == '') {
-                  ScaffoldMessenger.of(context)
-                      .showSnackBar(SnackBar(content: Text('Please select all fields')));
-                } else {
-                  fieldValid = true;
-                }
-                if (dateValid && fieldValid) {
-                  DataSnapshot snap = await dbBooking.once();
-                  //print(snap.value);
-                  Map<dynamic, dynamic> resultList = snap.value;
-                  dynamic count = resultList.length + 1;
-                  print(count);
-                  //print(resultList.keys);
-                  dbBooking.child("B" + count.toString()).set({
-                    'eDate': _eDate,
-                    'guest': _guest,
-                    'hotel': _hotel,
-                    'room': _room,
-                    'sDate': _sDate,
-                  });
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => MyApp()),
-                  );
-                }
-                // Validate returns true if the form is valid, or false
-                // otherwise.
-                /*
-                if (_formKey.currentState.validate()) {
-                  // If the form is valid, display a Snackbar.
-                  ScaffoldMessenger.of(context)
-                      .showSnackBar(SnackBar(content: Text('Processing Data')));
-                }
-                */
+              onPressed: () {
+                dbBooking.child(bookingIndex).update({
+                  'eDate': _eDate,
+                  'guest': _guest,
+                  'hotel': _hotel,
+                  'room': _room,
+                  'sDate': _sDate,
+                });
+                Navigator.of(context, rootNavigator: true).pop();
+                Navigator.of(context, rootNavigator: true).pop();
               },
               child: Text('Submit'),
             ),
@@ -463,196 +883,9 @@ class MyCustomFormState extends State<MyCustomForm> {
   }
 }
 
-class CreateBooking extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final appTitle = 'Create Booking';
-    return MaterialApp(
-      title: appTitle,
-      theme: ThemeData.dark().copyWith(accentColor: Colors.purple),
-      home: Scaffold(
-        appBar: AppBar(
-          title: Text(appTitle),
-        ),
-        body: MyCustomForm(),
-      ),
-    );
-  }
-}
-
-class HotelList extends StatelessWidget {
-  final dbRef = FirebaseDatabase.instance.reference().child("Hotels");
-  List<Map<dynamic, dynamic>> lists = [];
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("Hotel List"),
-      ),
-      body: Center(
-        child: Container(
-        margin: const EdgeInsets.all(10.0),
-          child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: <Widget>[
-                //final dbRef = FirebaseDatabase.instance.reference().child("pets");
-                FutureBuilder(
-                    future: dbRef.once(),
-                    builder: (context, AsyncSnapshot<DataSnapshot> snapshot) {
-                      if (snapshot.hasData) {
-                        lists.clear();
-                        Map<dynamic, dynamic> values = snapshot.data.value;
-                        print(snapshot.data.value);
-                        values.forEach((key, values) {
-                          lists.add(values);
-                        });
-                        return new ListView.builder(
-                            shrinkWrap: true,
-                            itemCount: lists.length,
-                            itemBuilder: (BuildContext context, int index) {
-                              return Card(
-                                child: InkWell(
-                                  splashColor: Colors.purple.withAlpha(30),
-                                  onTap: () {
-                                    //print('Card tapped.');
-                                  },
-                                  child: Container(
-                                    height: 40,
-                                    width: double.infinity,
-                                    child: Padding(
-                                      padding: EdgeInsets.all(10.0),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: <Widget>[
-                                          Text(lists[index]["hName"]),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            });
-                      }
-                      return CircularProgressIndicator();
-                    }),
-                Card(
-                  //height: 100,
-                  child: InkWell(
-                    splashColor: Colors.purple.withAlpha(30),
-                    onTap: () {
-                      //print('Card tapped.');
-                    },
-                    child: Container(
-                      height: 40,
-                      width: double.infinity,
-                      child: Padding(
-                        padding: EdgeInsets.all(5.0),
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                          },
-                          child: Text('Go back'),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class BookingList extends StatelessWidget {
-  final dbRef = FirebaseDatabase.instance.reference().child("Booking");
-  List<Map<dynamic, dynamic>> lists = [];
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("Booking List"),
-      ),
-      body: Center(
-        child: Container(
-          margin: const EdgeInsets.all(10.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: <Widget>[
-              FutureBuilder(
-                  future: dbRef.once(),
-                  builder: (context, AsyncSnapshot<DataSnapshot> snapshot) {
-                    if (snapshot.hasData) {
-                      lists.clear();
-                      Map<dynamic, dynamic> values = snapshot.data.value;
-                      values.forEach((key, values) {
-                        lists.add(values);
-                      });
-                      return new ListView.builder(
-                        shrinkWrap: true,
-                        itemCount: lists.length,
-                        itemBuilder: (BuildContext context, int index) {
-                          return Card(
-                            child: InkWell(
-                              splashColor: Colors.purple.withAlpha(30),
-                              onTap: () {
-                                 //print('Card tapped.');
-                              },
-                              child: Container(
-                                height: 100,
-                                width: double.infinity,
-                                child: Padding(
-                                  padding: EdgeInsets.all(10.0),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: <Widget>[
-                                      Text("Guest: " + lists[index]["guest"]),
-                                      Text("Hotel: " + lists[index]["hotel"]),
-                                      Text("Room: " + lists[index]["room"]),
-                                      Text("Check-In: " + lists[index]["sDate"]),
-                                      Text("Check-Out: " + lists[index]["eDate"]),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        }
-                      );
-                    }
-                    return CircularProgressIndicator();
-                  }),
-              Card(
-                //height: 100,
-                child: InkWell(
-                  splashColor: Colors.purple.withAlpha(30),
-                  onTap: () {
-                    //print('Card tapped.');
-                  },
-                  child: Container(
-                    height: 40,
-                    width: double.infinity,
-                    child: Padding(
-                      padding: EdgeInsets.all(5.0),
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
-                        child: Text('Go back'),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
+///=============================================================================
+///Delete Booking
+///=============================================================================
 class DeleteBookingList extends StatelessWidget {
   final dbRef = FirebaseDatabase.instance.reference().child("Booking");
   List<Map<dynamic, dynamic>> lists = [];
@@ -676,68 +909,55 @@ class DeleteBookingList extends StatelessWidget {
                       lists.clear();
                       keys.clear();
                       Map<dynamic, dynamic> values = snapshot.data.value;
-                      print(snapshot.data.value);
-                      print(values);
                       dynamic key = snapshot.data.key;
                       values.forEach((key, values) {
                         lists.add(values);
                         keys.add(key);
                       });
-                      //lists.map((values) => keys);
-                      print(lists);
-                      print(keys);
-                      return new ListView.builder(
-                        shrinkWrap: true,
-                        itemCount: lists.length,
-                        itemBuilder: (BuildContext context, int index) {
-                          return Card(
-                            child: InkWell(
-                              splashColor: Colors.purple.withAlpha(30),
-                              onTap: () {
-                                //print('Card tapped.');
-                              },
-                              child: Container(
-                                height: 100,
-                                width: double.infinity,
-                                child: Padding(
-                                  padding: EdgeInsets.all(1.0),
-                                  child: TextButton(
-                                    style: TextButton.styleFrom(
-                                      primary: Colors.white,
-                                      //backgroundColor: Colors.grey,
-                                    ),
-                                    onPressed: () {
-                                      deleteConfirmation(context, keys[index]);
-                                      //setState((){});
-                                    },
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                                      children: <Widget>[
-                                        //Text("Index: " + '$index'),
-                                        Text("Guest: " + lists[index]["guest"]),
-                                        Text("Hotel: " + lists[index]["hotel"]),
-                                        Text("Room: " + lists[index]["room"]),
-                                        Text("Check-In: " + lists[index]["sDate"]),
-                                        Text("Check-Out: " + lists[index]["eDate"]),
-                                      ],
+                      return new Container(
+                          margin: EdgeInsets.only(left: 0.0, right: 0.0, bottom: 0.0),
+                          height: MediaQuery.of(context).size.height - 148 ,
+                          child: ListView (children: new List.generate( lists.length, (int index){
+                            return Card(
+                              child: InkWell(
+                                splashColor: Colors.purple.withAlpha(30),
+                                child: Container(
+                                  height: 100,
+                                  width: double.infinity,
+                                  child: Padding(
+                                    padding: EdgeInsets.all(1.0),
+                                    child: TextButton(
+                                      style: TextButton.styleFrom(
+                                        primary: Colors.white,
+                                      ),
+                                      onPressed: () {
+                                        deleteConfirmation(context, keys[index]);
+                                      },
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                                        children: <Widget>[
+                                          Text("Guest: " + lists[index]["guest"]),
+                                          Text("Hotel: " + lists[index]["hotel"]),
+                                          Text("Room: " + lists[index]["room"]),
+                                          Text("Check-In: " + lists[index]["sDate"]),
+                                          Text("Check-Out: " + lists[index]["eDate"]),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
-                            ),
-                          );
-                        }
+                            );
+
+                          })
+                          )
                       );
                     }
                     return CircularProgressIndicator();
                   }),
               Card(
-                //height: 100,
                 child: InkWell(
                   splashColor: Colors.purple.withAlpha(30),
-                  onTap: () {
-                    //print('Card tapped.');
-                  },
                   child: Container(
                     height: 40,
                     width: double.infinity,
@@ -766,7 +986,7 @@ void deleteConfirmation(BuildContext context, dynamic key) {
   Widget cancelButton = TextButton(
     child: Text("Cancel"),
     onPressed: () {
-      Navigator.of(context).pop();
+      Navigator.of(context, rootNavigator: true).pop();
     },
   );
 
@@ -775,8 +995,8 @@ void deleteConfirmation(BuildContext context, dynamic key) {
     child: Text("Delete"),
     onPressed: () {
       deleteBooking(key);
-      Navigator.of(context).pop();
-      Navigator.of(context).pop();
+      Navigator.of(context, rootNavigator: true).pop();
+      Navigator.of(context, rootNavigator: true).pop();
       //setState((){});
       //context.reassemble();
     },
@@ -803,20 +1023,4 @@ void deleteConfirmation(BuildContext context, dynamic key) {
 void deleteBooking(dynamic key) {
   final dbRef = FirebaseDatabase.instance.reference().child("Booking");
   dbRef.child(key).remove();
-}
-
-void createData() {
-  final dbRef = FirebaseDatabase.instance.reference().child("Booking");
-  dbRef.child("B3").set({
-    'eDate': '03/11/21',
-    'guest': 'G1',
-    'hotel': 'H5',
-    'room': 'R1',
-    'sDate': '03/10/21'
-  });
-}
-
-void deleteData() {
-  final dbRef = FirebaseDatabase.instance.reference().child("Booking");
-  dbRef.child('B3').remove();
 }
