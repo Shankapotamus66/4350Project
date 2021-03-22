@@ -471,7 +471,6 @@ class CreateFormState extends State<CreateForm> {
                 bool fieldValid = false;
 
                 if (_sDate == _eDate) {
-<<<<<<< HEAD
                   ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
@@ -495,18 +494,10 @@ class CreateFormState extends State<CreateForm> {
                         backgroundColor: Colors.purple,
                       )
                     );
-=======
-                  Scaffold.of(context)
-                      .showSnackBar(SnackBar(content: Text('Check-In and Check-Out dates can not be the same')));
-                } else if (_inDate.isBefore(DateTime.now().subtract(Duration(days: 1)))) {
-                  Scaffold.of(context)
-                      .showSnackBar(SnackBar(content: Text('Check-In date can not be before today')));
->>>>>>> 92d0eced67527785874a3cbcb4cacb9f4419f7e2
                 } else {
                   dateValid = true;
                 }
                 if (_guest == '' || _hotel == '' || _room == '') {
-<<<<<<< HEAD
                   ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
@@ -518,10 +509,6 @@ class CreateFormState extends State<CreateForm> {
                         backgroundColor: Colors.purple,
                       )
                     );
-=======
-                  Scaffold.of(context)
-                      .showSnackBar(SnackBar(content: Text('Please select all fields')));
->>>>>>> 92d0eced67527785874a3cbcb4cacb9f4419f7e2
                 } else {
                   fieldValid = true;
                 }
@@ -558,97 +545,7 @@ class CreateBooking extends StatelessWidget {
           backgroundColor: Colors.purple,
           title: Text(appTitle),
         ),
-<<<<<<< HEAD
         body: CreateForm(),
-=======
-        body: MyCustomForm(),
-      ),
-    );
-  }
-}
-
-class HotelList extends StatelessWidget {
-  final dbRef = FirebaseDatabase.instance.reference().child("Hotels");
-  List<Map<dynamic, dynamic>> lists = [];
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("Hotel List"),
-      ),
-      body: Center(
-        child: Container(
-        margin: const EdgeInsets.all(10.0),
-          child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: <Widget>[
-                //final dbRef = FirebaseDatabase.instance.reference().child("pets");
-                FutureBuilder(
-                    future: dbRef.once(),
-                    builder: (context, AsyncSnapshot<DataSnapshot> snapshot) {
-                      if (snapshot.hasData) {
-                        lists.clear();
-                        Map<dynamic, dynamic> values = snapshot.data.value;
-                        print(snapshot.data.value);
-                        values.forEach((key, values) {
-                          lists.add(values);
-                        });
-                        return new Container(
-                            margin: EdgeInsets.only(left: 0.0, right: 0.0, bottom: 0.0),
-                            height: MediaQuery.of(context).size.height - 148 ,
-                            child: ListView (children: new List.generate( lists.length, (int index){
-                              return Card(
-                                child: InkWell(
-                                  splashColor: Colors.purple.withAlpha(30),
-                                  onTap: () {
-                                    //print('Card tapped.');
-                                  },
-                                  child: Container(
-                                    height: 40,
-                                    width: double.infinity,
-                                    child: Padding(
-                                      padding: EdgeInsets.all(10.0),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: <Widget>[
-                                          Text(lists[index]["hName"]),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }))
-                        );
-                      }
-                      return CircularProgressIndicator();
-                    }),
-                Card(
-                  //height: 100,
-                  child: InkWell(
-                    splashColor: Colors.purple.withAlpha(30),
-                    onTap: () {
-                      //print('Card tapped.');
-                    },
-                    child: Container(
-                      height: 40,
-                      width: double.infinity,
-                      child: Padding(
-                        padding: EdgeInsets.all(5.0),
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                          },
-                          child: Text('Go back'),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-          ),
-        ),
->>>>>>> 92d0eced67527785874a3cbcb4cacb9f4419f7e2
       ),
     );
   }
@@ -688,25 +585,14 @@ class BookingList extends StatelessWidget {
                       return new Container(
                           margin: EdgeInsets.only(left: 0.0, right: 0.0, bottom: 0.0),
                           height: MediaQuery.of(context).size.height - 148 ,
-<<<<<<< HEAD
                           child: ListView (children: new List.generate( lists.length, (int index){
-=======
-                          child: ListView (children: new List.generate( lists.length, (int index) {
->>>>>>> 92d0eced67527785874a3cbcb4cacb9f4419f7e2
                             return Card(
                               child: InkWell(
                                 splashColor: Colors.purple.withAlpha(30),
-                                onTap: () {
-<<<<<<< HEAD
-=======
-                                  //print('Card tapped.');
->>>>>>> 92d0eced67527785874a3cbcb4cacb9f4419f7e2
-                                },
                                 child: Container(
                                   height: 100,
                                   width: double.infinity,
                                   child: Padding(
-<<<<<<< HEAD
                                     padding: EdgeInsets.all(1.0),
                                     child: TextButton(
                                       style: TextButton.styleFrom(
@@ -734,35 +620,14 @@ class BookingList extends StatelessWidget {
                                           Text("Check-Out: " + lists[index]["eDate"]),
                                         ],
                                       ),
-=======
-                                    padding: EdgeInsets.all(10.0),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment
-                                          .start,
-                                      children: <Widget>[
-                                        Text("Guest: " + lists[index]["guest"]),
-                                        Text("Hotel: " + lists[index]["hotel"]),
-                                        Text("Room: " + lists[index]["room"]),
-                                        Text("Check-In: " +
-                                            lists[index]["sDate"]),
-                                        Text("Check-Out: " +
-                                            lists[index]["eDate"]),
-                                      ],
->>>>>>> 92d0eced67527785874a3cbcb4cacb9f4419f7e2
                                     ),
                                   ),
                                 ),
                               ),
                             );
-<<<<<<< HEAD
-
                           })
                           )
                       );
-=======
-                          }))
-                          );
->>>>>>> 92d0eced67527785874a3cbcb4cacb9f4419f7e2
                     }
                     return CircularProgressIndicator();
                   }),
@@ -1046,7 +911,6 @@ class DeleteBookingList extends StatelessWidget {
                         lists.add(values);
                         keys.add(key);
                       });
-<<<<<<< HEAD
                       return new Container(
                           margin: EdgeInsets.only(left: 0.0, right: 0.0, bottom: 0.0),
                           height: MediaQuery.of(context).size.height - 148 ,
@@ -1076,61 +940,13 @@ class DeleteBookingList extends StatelessWidget {
                                           Text("Check-Out: " + lists[index]["eDate"]),
                                         ],
                                       ),
-=======
-                      //lists.map((values) => keys);
-                      print(lists);
-                      print(keys);
-                      return new Container(
-                        margin: EdgeInsets.only(left: 0.0, right: 0.0, bottom: 0.0),
-                        height: MediaQuery.of(context).size.height - 148 ,
-                          child: ListView (children: new List.generate( lists.length, (int index){
-                          return Card(
-                            child: InkWell(
-                              splashColor: Colors.purple.withAlpha(30),
-                              onTap: () {
-                                //print('Card tapped.');
-                              },
-                              child: Container(
-                                height: 100,
-                                width: double.infinity,
-                                child: Padding(
-                                  padding: EdgeInsets.all(1.0),
-                                  child: TextButton(
-                                    style: TextButton.styleFrom(
-                                      primary: Colors.white,
-                                      //backgroundColor: Colors.grey,
-                                    ),
-                                    onPressed: () {
-                                      deleteConfirmation(context, keys[index]);
-                                      //setState((){});
-                                    },
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                                      children: <Widget>[
-                                        //Text("Index: " + '$index'),
-                                        Text("Guest: " + lists[index]["guest"]),
-                                        Text("Hotel: " + lists[index]["hotel"]),
-                                        Text("Room: " + lists[index]["room"]),
-                                        Text("Check-In: " + lists[index]["sDate"]),
-                                        Text("Check-Out: " + lists[index]["eDate"]),
-                                      ],
->>>>>>> 92d0eced67527785874a3cbcb4cacb9f4419f7e2
                                     ),
                                   ),
                                 ),
                               ),
-<<<<<<< HEAD
                             );
-
                           })
                           )
-=======
-                            ),
-                          );
-
-                          })
-                      )
->>>>>>> 92d0eced67527785874a3cbcb4cacb9f4419f7e2
                       );
                     }
                     return CircularProgressIndicator();
